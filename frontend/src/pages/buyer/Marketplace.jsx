@@ -10,7 +10,7 @@ import { getStoredListings, getStoredProjects, recordPurchase } from '../../util
 const PROJECT_TYPES = ['All', 'Forest', 'Solar', 'Wind', 'Hydro', 'Other']
 
 export default function Marketplace() {
-  const { contracts, address, isConnected, connect, signer } = useWeb3()
+  const { contracts, address, isConnected, connect, signer, ethBalance } = useWeb3()
   const navigate = useNavigate()
 
   const [listings,    setListings]    = useState([])
@@ -414,8 +414,17 @@ export default function Marketplace() {
                 </div>
               </div>
 
+              {isConnected && (
+                <div className="flex justify-between text-xs text-faint mb-2">
+                  <span>Your Wallet Balance:</span>
+                  <span className="font-mono font-medium" style={{ color: ethBalance && Number(ethBalance) > 0 ? '#22c55e' : '#f59e0b' }}>
+                    {ethBalance !== null ? `${Number(ethBalance).toFixed(4)} ETH` : 'Fetching...'}
+                  </span>
+                </div>
+              )}
+
               {quote && (
-                <div className="card card-p" style={{ background: 'rgba(34,197,94,0.06)' }}>
+                <div className="card card-p mb-3" style={{ background: 'rgba(34,197,94,0.06)' }}>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-faint">Subtotal</span>
                     <span>{Number(ethers.formatEther(quote.gross)).toFixed(6)} ETH</span>
@@ -430,6 +439,19 @@ export default function Marketplace() {
                     <span className="text-green" style={{ fontSize: '1.1rem' }}>
                       {Number(ethers.formatEther(quote.gross)).toFixed(6)} ETH
                     </span>
+                  </div>
+                </div>
+              )}
+
+              {isConnected && quote && ethBalance !== null && Number(ethers.formatEther(quote.gross)) > Number(ethBalance) && (
+                <div className="card card-p mb-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px' }}>
+                  <div className="text-xs font-semibold text-red mb-1">
+                    ⚠️ Insufficient ETH for On-Chain Transaction
+                  </div>
+                  <div className="text-xs text-muted leading-relaxed">
+                    Required: <strong>{Number(ethers.formatEther(quote.gross)).toFixed(4)} ETH</strong> · Balance: <strong>{Number(ethBalance).toFixed(4)} ETH</strong>.
+                    <br />
+                    <em>Tip: Try buying a smaller amount (e.g. 0.5 CCT) or test on Hardhat local node.</em>
                   </div>
                 </div>
               )}

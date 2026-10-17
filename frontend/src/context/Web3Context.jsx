@@ -19,6 +19,7 @@ export function Web3Provider({ children }) {
   const [signer,       setSigner]       = useState(null);
   const [address,      setAddress]      = useState(null);
   const [chainId,      setChainId]      = useState(null);
+  const [ethBalance,   setEthBalance]   = useState(null);
   const [isConnected,  setIsConnected]  = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [roles,        setRoles]        = useState({ isAdmin: false, isVerifier: false, isSeller: false });
@@ -56,6 +57,7 @@ export function Web3Provider({ children }) {
     const demoAddr = '0x40F7df064D6d17d00FF39056aFB183244F74dC6dc';
     setAddress(demoAddr);
     setChainId(11155111);
+    setEthBalance('10.0');
     setIsConnected(true);
     setRoles({ isSeller: true, isVerifier: true, isAdmin: true });
     toast.success('Connected in Instant Demo Mode! 🚀');
@@ -91,6 +93,13 @@ export function Web3Provider({ children }) {
       setChainId(Number(network.chainId));
       setIsConnected(true);
 
+      try {
+        const bal = await web3Provider.getBalance(userAddress);
+        setEthBalance(ethers.formatEther(bal));
+      } catch (balErr) {
+        console.warn("Could not fetch balance:", balErr);
+      }
+
       const c = initContracts(web3Signer);
       if (c) {
         try {
@@ -106,7 +115,7 @@ export function Web3Provider({ children }) {
       if (err.code === 4001 || (err.message && err.message.includes("User rejected"))) {
         toast.error("Wallet connection cancelled.");
       } else if (err.code === -32002 || (err.message && err.message.includes("already pending"))) {
-        toast("MetaMask popup already open! Please check the fox icon.", { icon: "🦊" });
+        toast("MetaMask popup already open! Please check the fox icon in your browser.", { icon: "🦊" });
       } else {
         toast.error(err.message || "Failed to connect wallet");
       }
@@ -114,7 +123,7 @@ export function Web3Provider({ children }) {
     } finally {
       setIsConnecting(false);
     }
-  }, [initContracts, fetchRoles]);
+  }, [initContracts, fetchRoles, connectDemo]);
 
   // ── Disconnect ───────────────────────────────────────────────────────────
   const disconnect = useCallback(() => {
@@ -122,6 +131,7 @@ export function Web3Provider({ children }) {
     setSigner(null);
     setAddress(null);
     setChainId(null);
+    setEthBalance(null);
     setIsConnected(false);
     setRoles({ isAdmin: false, isVerifier: false, isSeller: false });
     setContracts({ cct: null, marketplace: null, registry: null });
@@ -139,7 +149,7 @@ export function Web3Provider({ children }) {
 
     // Increase max listeners to silence the MetaMask warning
     if (window.ethereum.setMaxListeners) {
-      window.ethereum.setMaxListeners(20);
+      window.ethereum.setMaxListeners(50);
     }
 
     const handleAccountsChanged = async (accounts) => {
@@ -165,22 +175,24 @@ export function Web3Provider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // ← Empty deps: register listeners ONCE only
 
-  // ── Auto-connect if wallet was previously authorized ─────────────────────
-  // Separate effect, also runs once on mount.
+  // ── Auto-popup / Auto-connect MetaMask on DApp open ───────────────────────
   useEffect(() => {
     if (!window.ethereum) return;
     let cancelled = false;
 
-    window.ethereum
-      .request({ method: "eth_accounts" })
-      .then((accounts) => {
-        if (!cancelled && accounts.length > 0) connectRef.current();
-      })
-      .catch(() => {/* silently ignore */});
+    // Trigger connect popup shortly after page loads
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        connectRef.current();
+      }
+    }, 450);
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← Once on mount
+  }, []); // ← Trigger on mount
 
   // ── Read-only provider for public data ───────────────────────────────────
   const getReadOnlyContracts = useCallback(() => {
@@ -214,12 +226,18 @@ export function Web3Provider({ children }) {
   }, []);
 
   const value = {
-    provider, signer, address, chainId,
+    provider, signer, address, chainId, ethBalance,
     isConnected, isConnecting, error,
     roles, contracts,
     connect, connectDemo, disconnect, switchNetwork,
     getReadOnlyContracts,
     refreshRoles: () => fetchRoles(contracts.cct, address),
+    refreshBalance: async () => {
+      if (provider && address) {
+        const bal = await provider.getBalance(address);
+        setEthBalance(ethers.formatEther(bal));
+      }
+    },
   };
 
   return <Web3Context.Provider value={value}>{children}</Web3Context.Provider>;
