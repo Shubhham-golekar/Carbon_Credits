@@ -443,28 +443,58 @@ export default function Marketplace() {
                 </div>
               )}
 
-              {isConnected && quote && ethBalance !== null && Number(ethers.formatEther(quote.gross)) > Number(ethBalance) && (
-                <div className="card card-p mb-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px' }}>
-                  <div className="text-xs font-semibold text-red mb-1">
-                    ⚠️ Insufficient ETH for On-Chain Transaction
+              {isConnected && quote && ethBalance !== null && Number(ethers.formatEther(quote.gross)) > Number(ethBalance) && (() => {
+                const priceEth = Number(ethers.formatEther(buyModal.pricePerToken));
+                const gasReserve = 0.0005; // Leave buffer for gas
+                const affordable = priceEth > 0 && Number(ethBalance) > gasReserve
+                  ? Math.max(0.01, Math.floor(((Number(ethBalance) - gasReserve) / priceEth) * 100) / 100)
+                  : 0;
+
+                return (
+                  <div className="card card-p mb-2" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '8px' }}>
+                    <div className="text-xs font-semibold text-red mb-1">
+                      ⚠️ Insufficient Sepolia ETH for this Purchase
+                    </div>
+                    <div className="text-xs text-muted leading-relaxed mb-2">
+                      Required: <strong>{Number(ethers.formatEther(quote.gross)).toFixed(4)} ETH</strong> · Your Balance: <strong>{Number(ethBalance).toFixed(4)} ETH</strong>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      {affordable > 0 && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                          onClick={() => setBuyAmount(affordable.toString())}
+                        >
+                          ⚡ Auto-fill {affordable} CCT (Affordable)
+                        </button>
+                      )}
+                      <a
+                        href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: '#60a5fa' }}
+                      >
+                        🚰 Get Free Sepolia ETH ↗
+                      </a>
+                    </div>
                   </div>
-                  <div className="text-xs text-muted leading-relaxed">
-                    Required: <strong>{Number(ethers.formatEther(quote.gross)).toFixed(4)} ETH</strong> · Balance: <strong>{Number(ethBalance).toFixed(4)} ETH</strong>.
-                    <br />
-                    <em>Tip: Try buying a smaller amount (e.g. 0.5 CCT) or test on Hardhat local node.</em>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
             <div className="modal-footer">
               <button className="btn btn-ghost" onClick={() => setBuyModal(null)} disabled={buying}>Cancel</button>
               <button
                 className="btn btn-primary"
                 onClick={isConnected ? handleBuy : connect}
-                disabled={buying || (isConnected && (!quote || !buyAmount))}
+                disabled={buying || (isConnected && (!quote || !buyAmount || Number(ethers.formatEther(quote.gross)) > Number(ethBalance)))}
               >
                 {buying ? <><div className="spinner"/>Processing...</>
-                  : isConnected ? '🛒 Confirm Purchase' : '🦊 Connect to Buy'}
+                  : !isConnected ? '🦊 Connect to Buy'
+                  : quote && ethBalance !== null && Number(ethers.formatEther(quote.gross)) > Number(ethBalance)
+                    ? '⚠️ Insufficient ETH Balance'
+                    : '🛒 Confirm Purchase'}
               </button>
             </div>
           </div>
