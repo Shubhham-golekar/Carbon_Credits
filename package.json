@@ -4,6 +4,7 @@
   "description": "Blockchain-based carbon credit tracking and trading platform",
   "scripts": {
     "compile": "npx hardhat compile",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "test": "npx hardhat test",
     "node": "npx hardhat node",
     "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
