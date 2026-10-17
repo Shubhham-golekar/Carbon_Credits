@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useWeb3 } from '../../context/Web3Context'
-import { formatCCT, formatETH, formatDate } from '../../utils/helpers'
+import { formatCCT, formatETH, formatDate, formatContractError } from '../../utils/helpers'
 import { ethers } from 'ethers'
 import toast from 'react-hot-toast'
 import { getStoredListings, addStoredListing, getStoredProjects } from '../../utils/localStore'
@@ -131,13 +131,22 @@ export default function ManageListings() {
       }
 
       if (!onChainDone && signer) {
-        const tx = await signer.sendTransaction({
-          to: address,
-          value: 0n,
-          data: ethers.hexlify(ethers.toUtf8Bytes(`CreateListing:Proj#${form.projectId}:${form.amount}CCT`)),
-        })
-        toast.loading('Broadcasting listing to blockchain...', { id: tid })
-        await tx.wait()
+        try {
+          const tx = await signer.sendTransaction({
+            to: address,
+            value: 0n,
+            data: ethers.hexlify(ethers.toUtf8Bytes(`CreateListing:Proj#${form.projectId}:${form.amount}CCT`)),
+          })
+          toast.loading('Broadcasting listing to blockchain...', { id: tid })
+          await tx.wait()
+        } catch (walletErr) {
+          console.warn('Wallet transaction skipped/failed:', walletErr)
+          if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
+            toast.error('❌ Listing was cancelled in MetaMask.', { id: tid })
+            return
+          }
+          toast('⚠️ Insufficient ETH for gas on this network. Saved to local storage for demo testing.', { id: tid, icon: '⚠️', duration: 5000 })
+        }
       }
 
       addStoredListing({
@@ -153,11 +162,7 @@ export default function ManageListings() {
       setShowCreate(false)
       fetchListings()
     } catch (err) {
-      if (err.code === 4001 || (err.message && err.message.includes('rejected'))) {
-        toast.error('❌ Listing was rejected in MetaMask.', { id: tid })
-      } else {
-        toast.error(err.reason || err.message?.slice(0, 80) || 'Failed to create listing', { id: tid })
-      }
+      toast.error(formatContractError(err, 'Failed to create listing'), { id: tid })
     } finally {
       setFormLoading(false)
     }

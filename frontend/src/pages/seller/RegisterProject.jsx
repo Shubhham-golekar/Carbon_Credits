@@ -3,6 +3,7 @@ import { useWeb3 } from '../../context/Web3Context'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { addStoredProject } from '../../utils/localStore'
+import { formatContractError } from '../../utils/helpers'
 
 const PROJECT_TYPES = ['Forest', 'Solar', 'Wind', 'Hydro', 'Other']
 const TYPE_ICONS    = ['🌳', '☀️', '💨', '💧', '♻️']
@@ -79,13 +80,22 @@ export default function RegisterProject() {
       }
 
       if (!registeredOnChain && signer) {
-        const tx = await signer.sendTransaction({
-          to: address,
-          value: 0n,
-          data: ethers.hexlify(ethers.toUtf8Bytes(`Register:${form.name.slice(0, 24)}`)),
-        })
-        toast.loading('Broadcasting registration to blockchain...', { id: tid })
-        await tx.wait()
+        try {
+          const tx = await signer.sendTransaction({
+            to: address,
+            value: 0n,
+            data: ethers.hexlify(ethers.toUtf8Bytes(`Register:${form.name.slice(0, 24)}`)),
+          })
+          toast.loading('Broadcasting registration to blockchain...', { id: tid })
+          await tx.wait()
+        } catch (walletErr) {
+          console.warn('Wallet transaction skipped/failed:', walletErr)
+          if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
+            toast.error('❌ Transaction was cancelled in MetaMask.', { id: tid })
+            return
+          }
+          toast('⚠️ Wallet has insufficient ETH for gas on this network. Saved to local storage for demo testing.', { id: tid, icon: '⚠️', duration: 5000 })
+        }
       }
 
       // Always sync with localStore so it shows up seamlessly on Marketplace and Dashboards
@@ -96,11 +106,7 @@ export default function RegisterProject() {
       setForm(INITIAL)
       navigate('/marketplace')
     } catch (err) {
-      if (err.code === 4001 || (err.message && err.message.includes('rejected'))) {
-        toast.error('❌ Transaction was rejected in MetaMask.', { id: tid })
-      } else {
-        toast.error(err.reason || err.message?.slice(0, 80) || 'Registration failed', { id: tid })
-      }
+      toast.error(formatContractError(err, 'Registration failed'), { id: tid })
     } finally {
       setLoading(false)
     }

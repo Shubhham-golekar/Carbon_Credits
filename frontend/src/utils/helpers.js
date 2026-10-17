@@ -127,3 +127,26 @@ export async function copyToClipboard(text) {
 export function numberWithCommas(x) {
   return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
+// ── Error formatting ──────────────────────────────────────────────────────
+export function formatContractError(err, fallback = "Transaction failed") {
+  if (!err) return fallback;
+  const msg = err.message || "";
+
+  if (err.code === 4001 || msg.includes("User rejected") || msg.includes("user rejected")) {
+    return "Transaction was cancelled in MetaMask.";
+  }
+  if (msg.includes("OutOfFunds") || msg.includes("insufficient funds")) {
+    return "Insufficient ETH in your wallet to cover transaction and gas fees.";
+  }
+  if (msg.includes("could not decode result data") || msg.includes("missing revert data")) {
+    return "Contract call failed: Contract is not deployed on this network, or gas estimation failed.";
+  }
+  if (err.reason) {
+    return err.reason;
+  }
+  if (msg.length > 0 && msg.length < 120) {
+    return msg;
+  }
+  return fallback;
+}

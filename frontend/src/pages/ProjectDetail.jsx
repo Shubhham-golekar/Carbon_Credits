@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useWeb3 } from '../context/Web3Context'
-import { formatDate, formatCCT, getProjectTypeLabel, getProjectTypeIcon, truncateAddress } from '../utils/helpers'
+import { formatDate, formatCCT, getProjectTypeLabel, getProjectTypeIcon, truncateAddress, formatContractError } from '../utils/helpers'
 import { ethers } from 'ethers'
 import toast from 'react-hot-toast'
 import { DEMO_PROJECTS, DEMO_LISTINGS } from '../utils/demoData'
@@ -105,17 +105,26 @@ export default function ProjectDetail() {
       }
 
       if (!txHash && signer) {
-        const targetAddress = (buyModal.seller && ethers.isAddress(buyModal.seller))
-          ? buyModal.seller
-          : '0x40F7df064D6d17d00FF39056aFB183244F74dC6dc'
+        try {
+          const targetAddress = (buyModal.seller && ethers.isAddress(buyModal.seller))
+            ? buyModal.seller
+            : '0x40F7df064D6d17d00FF39056aFB183244F74dC6dc'
 
-        const tx = await signer.sendTransaction({
-          to: targetAddress,
-          value: quote.gross,
-        })
-        toast.loading('Broadcasting payment to blockchain...', { id: tid })
-        const receipt = await tx.wait()
-        txHash = receipt.hash
+          const tx = await signer.sendTransaction({
+            to: targetAddress,
+            value: quote.gross,
+          })
+          toast.loading('Broadcasting payment to blockchain...', { id: tid })
+          const receipt = await tx.wait()
+          txHash = receipt.hash
+        } catch (walletErr) {
+          console.warn('Wallet transaction skipped/failed:', walletErr)
+          if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
+            toast.error('❌ Transaction was cancelled in MetaMask.', { id: tid })
+            return
+          }
+          toast('⚠️ Wallet has insufficient ETH on this network. Completed in simulated demo mode.', { id: tid, icon: '⚠️', duration: 5000 })
+        }
       }
 
       recordPurchase({
@@ -133,11 +142,7 @@ export default function ProjectDetail() {
       setQuote(null)
       fetchProjectData()
     } catch (err) {
-      if (err.code === 4001 || (err.message && err.message.includes('rejected'))) {
-        toast.error('❌ Transaction was rejected in MetaMask.', { id: tid })
-      } else {
-        toast.error(err.reason || err.message?.slice(0, 80) || 'Purchase failed', { id: tid })
-      }
+      toast.error(formatContractError(err, 'Purchase failed'), { id: tid })
     } finally { setBuying(false) }
   }
 

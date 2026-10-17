@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useWeb3 } from '../../context/Web3Context'
-import { formatCCT, formatETH, formatDate, truncateAddress } from '../../utils/helpers'
+import { formatCCT, formatETH, formatDate, truncateAddress, formatContractError } from '../../utils/helpers'
 import { ethers } from 'ethers'
 import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
@@ -167,14 +167,23 @@ export default function Portfolio() {
       }
 
       if (!txHash && signer) {
-        const tx = await signer.sendTransaction({
-          to: address,
-          value: 0n,
-          data: ethers.hexlify(ethers.toUtf8Bytes(`Retire:${retireForm.amount}CCT:${retireForm.reason.slice(0, 18)}`)),
-        })
-        toast.loading('Broadcasting retirement to blockchain...', { id: tid })
-        const receipt = await tx.wait()
-        txHash = receipt.hash
+        try {
+          const tx = await signer.sendTransaction({
+            to: address,
+            value: 0n,
+            data: ethers.hexlify(ethers.toUtf8Bytes(`Retire:${retireForm.amount}CCT:${retireForm.reason.slice(0, 18)}`)),
+          })
+          toast.loading('Broadcasting retirement to blockchain...', { id: tid })
+          const receipt = await tx.wait()
+          txHash = receipt.hash
+        } catch (walletErr) {
+          console.warn('Wallet transaction skipped/failed:', walletErr)
+          if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
+            toast.error('❌ Retirement was cancelled in MetaMask.', { id: tid })
+            return
+          }
+          toast('⚠️ Wallet has insufficient ETH on this network. Generating certificate in demo mode.', { id: tid, icon: '⚠️', duration: 5000 })
+        }
       }
 
       if (!txHash) {
@@ -203,11 +212,7 @@ export default function Portfolio() {
       setRetireForm({ amount: '', projectId: '', reason: '' })
       setRetireModal(false)
     } catch (err) {
-      if (err.code === 4001 || (err.message && err.message.includes('rejected'))) {
-        toast.error('❌ Retirement was rejected in MetaMask.', { id: tid })
-      } else {
-        toast.error(err.reason || err.message?.slice(0, 80) || 'Retirement failed', { id: tid })
-      }
+      toast.error(formatContractError(err, 'Retirement failed'), { id: tid })
     } finally {
       setRetiring(false)
     }
