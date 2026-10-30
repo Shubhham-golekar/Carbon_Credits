@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const DEPLOYER_ACCOUNTS = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [];
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 const MST_TESTNET_RPC = process.env.MST_TESTNET_RPC || "https://testnetrpc.mstblockchain.com";
@@ -29,18 +29,18 @@ module.exports = {
     },
     sepolia: {
       url: SEPOLIA_RPC_URL,
-      accounts: [PRIVATE_KEY],
+      accounts: DEPLOYER_ACCOUNTS,
       chainId: 11155111,
     },
     mstTestnet: {
       url: MST_TESTNET_RPC,
       chainId: 91562037,
-      accounts: [PRIVATE_KEY],
+      accounts: DEPLOYER_ACCOUNTS,
     },
     mstMainnet: {
       url: MST_MAINNET_RPC,
       chainId: 4646,
-      accounts: [PRIVATE_KEY],
+      accounts: DEPLOYER_ACCOUNTS,
     },
   },
   etherscan: {

@@ -14,12 +14,25 @@ const path = require("path");
  * approve projects and mint tokens seamlessly.
  */
 async function main() {
+  const network = await ethers.provider.getNetwork();
+  const chainId = Number(network.chainId);
+  if (chainId !== 31337 && !process.env.PRIVATE_KEY) {
+    throw new Error("PRIVATE_KEY is required for public-network deployments.");
+  }
+  if (network.name === "mstTestnet" && chainId !== 91562037) {
+    throw new Error(`Refusing deployment: MST Testnet returned unexpected chain ID ${chainId}.`);
+  }
+
   const [deployer, verifier, feeRecipient] = await ethers.getSigners();
+  if (!deployer) {
+    throw new Error("No deployer account is configured. Set PRIVATE_KEY in the root .env file.");
+  }
 
   console.log("═══════════════════════════════════════════════");
   console.log("  CarbonX Platform Deployment");
   console.log("═══════════════════════════════════════════════");
-  console.log(`  Network:       ${(await ethers.provider.getNetwork()).name}`);
+  console.log(`  Network:       ${network.name}`);
+  console.log(`  Chain ID:      ${chainId}`);
   console.log(`  Deployer:      ${deployer.address}`);
   console.log(`  Verifier:      ${verifier ? verifier.address : deployer.address}`);
   console.log(`  Fee Recipient: ${feeRecipient ? feeRecipient.address : deployer.address}`);
@@ -35,7 +48,11 @@ async function main() {
   const cct = await CCT.deploy();
   await cct.waitForDeployment();
   const cctAddress = await cct.getAddress();
+  const cctDeployment = cct.deploymentTransaction();
+  const cctReceipt = await cctDeployment.wait();
+  if (cctReceipt.status !== 1) throw new Error("CarbonCreditToken deployment transaction failed.");
   console.log(`   ✅ CarbonCreditToken deployed at: ${cctAddress}`);
+  console.log(`      Transaction: ${cctReceipt.hash}`);
 
   // ── 2. Deploy ProjectRegistry ────────────────────────────────────────────
   console.log("\n2. Deploying ProjectRegistry...");
@@ -43,7 +60,11 @@ async function main() {
   const registry = await Registry.deploy();
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
+  const registryDeployment = registry.deploymentTransaction();
+  const registryReceipt = await registryDeployment.wait();
+  if (registryReceipt.status !== 1) throw new Error("ProjectRegistry deployment transaction failed.");
   console.log(`   ✅ ProjectRegistry deployed at:   ${registryAddress}`);
+  console.log(`      Transaction: ${registryReceipt.hash}`);
 
   // ── 3. Deploy Marketplace ────────────────────────────────────────────────
   console.log("\n3. Deploying Marketplace...");
@@ -51,7 +72,11 @@ async function main() {
   const market = await Market.deploy(cctAddress, PLATFORM_FEE_BPS, feeRecipientAddr);
   await market.waitForDeployment();
   const marketAddress = await market.getAddress();
+  const marketDeployment = market.deploymentTransaction();
+  const marketReceipt = await marketDeployment.wait();
+  if (marketReceipt.status !== 1) throw new Error("Marketplace deployment transaction failed.");
   console.log(`   ✅ Marketplace deployed at:       ${marketAddress}`);
+  console.log(`      Transaction: ${marketReceipt.hash}`);
 
   // ── 4. Grant Roles ───────────────────────────────────────────────────────
   console.log("\n4. Configuring roles...");
@@ -59,9 +84,17 @@ async function main() {
   const VERIFIER_ROLE = ethers.keccak256(ethers.toUtf8Bytes("VERIFIER_ROLE"));
 
   // Grant VERIFIER_ROLE in CCT and Registry to the verifier address
-  if (verifierAddr !== deployer.address) {
-    await (await cct.grantRole(VERIFIER_ROLE, verifierAddr)).wait();
-    await (await registry.grantRole(VERIFIER_ROLE, verifierAddr)).wait();
+  const roleGrantTransactions = {};
+  if (verifierAddr.toLowerCase() !== deployer.address.toLowerCase()) {
+    const cctGrant = await cct.grantRole(VERIFIER_ROLE, verifierAddr);
+    const cctGrantReceipt = await cctGrant.wait();
+    if (cctGrantReceipt.status !== 1) throw new Error("CCT verifier role transaction failed.");
+    roleGrantTransactions.cctVerifierRole = cctGrantReceipt.hash;
+
+    const registryGrant = await registry.grantRole(VERIFIER_ROLE, verifierAddr);
+    const registryGrantReceipt = await registryGrant.wait();
+    if (registryGrantReceipt.status !== 1) throw new Error("Registry verifier role transaction failed.");
+    roleGrantTransactions.registryVerifierRole = registryGrantReceipt.hash;
     console.log(`   ✅ Granted VERIFIER_ROLE to: ${verifierAddr}`);
   } else {
     console.log(`   ℹ️  Deployer already holds VERIFIER_ROLE (single signer mode)`);
@@ -71,14 +104,20 @@ async function main() {
   console.log("\n5. Saving deployment artifacts...");
 
   const deployment = {
-    network:      (await ethers.provider.getNetwork()).name,
-    chainId:      Number((await ethers.provider.getNetwork()).chainId),
+    network:      network.name,
+    chainId,
     deployedAt:   new Date().toISOString(),
     deployer:     deployer.address,
     contracts: {
       CarbonCreditToken: cctAddress,
       ProjectRegistry:   registryAddress,
       Marketplace:       marketAddress,
+    },
+    transactions: {
+      CarbonCreditTokenDeployment: cctReceipt.hash,
+      ProjectRegistryDeployment: registryReceipt.hash,
+      MarketplaceDeployment: marketReceipt.hash,
+      ...roleGrantTransactions,
     },
     config: {
       platformFeeBps:  PLATFORM_FEE_BPS,
@@ -110,6 +149,9 @@ async function main() {
   console.log(`  CCT Token:    ${cctAddress}`);
   console.log(`  Registry:     ${registryAddress}`);
   console.log(`  Marketplace:  ${marketAddress}`);
+  console.log(`  CCT Tx:       ${cctReceipt.hash}`);
+  console.log(`  Registry Tx:  ${registryReceipt.hash}`);
+  console.log(`  Market Tx:    ${marketReceipt.hash}`);
   console.log("═══════════════════════════════════════════════\n");
 
   // ── Verify on Etherscan (Sepolia) ────────────────────────────────────────

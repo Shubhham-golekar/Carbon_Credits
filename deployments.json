@@ -1,15 +1,20 @@
 {
-  "network": "localhost",
-  "chainId": 31337,
-  "deployedAt": "2026-10-17T08:19:49.277Z",
-  "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "network": "mstTestnet",
+  "chainId": 91562037,
+  "deployedAt": "2026-10-30T19:27:13.088Z",
+  "deployer": "0xE3a5Ae959B3807aa5205c29f4Bc454758FBDa0F8",
   "contracts": {
-    "CarbonCreditToken": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    "ProjectRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-    "Marketplace": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+    "CarbonCreditToken": "0x72ba007D3D4D6DB4208Df978DdEa09Ee534E725D",
+    "ProjectRegistry": "0x7EaE52b82adB080E47757D188715eF938A63A165",
+    "Marketplace": "0xF90A826F81465bA2177B44b736be10B85C8F429B"
+  },
+  "transactions": {
+    "CarbonCreditTokenDeployment": "0x4fa581aa4ad594ad98b7e9e17946d979a76454c93e0b61cac5905ff1016e1a55",
+    "ProjectRegistryDeployment": "0x0bfba28292a204dfcffd0478b2791c9fc3628e94b26c07a6c43965b9a700fc4a",
+    "MarketplaceDeployment": "0xd4199fbd0ff8e022bd4fff5c9cdd1ce327adef68ad98632ab9204168c311f340"
   },
   "config": {
     "platformFeeBps": 250,
-    "feeRecipient": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"
+    "feeRecipient": "0xE3a5Ae959B3807aa5205c29f4Bc454758FBDa0F8"
   }
 }

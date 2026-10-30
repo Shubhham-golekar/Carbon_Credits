@@ -14,6 +14,29 @@
 
 > The app includes an explicit Demo Mode for exploring the interface. Demo activity is stored locally in the browser and is **not** submitted to a blockchain. Live contract actions require a supported wallet, the correct network, and deployed contract addresses.
 
+## MST Testnet Deployment
+
+The following contracts are deployed on **MST Testnet (chain ID `91562037`)**:
+
+| Contract | Address | Deployment transaction |
+|---|---|---|
+| CCT Token (`CarbonCreditToken`) | `0x72ba007D3D4D6DB4208Df978DdEa09Ee534E725D` | `0x4fa581aa4ad594ad98b7e9e17946d979a76454c93e0b61cac5905ff1016e1a55` |
+| Project Registry (`ProjectRegistry`) | `0x7EaE52b82adB080E47757D188715eF938A63A165` | `0x0bfba28292a204dfcffd0478b2791c9fc3628e94b26c07a6c43965b9a700fc4a` |
+| Marketplace (`Marketplace`) | `0xF90A826F81465bA2177B44b736be10B85C8F429B` | `0xd4199fbd0ff8e022bd4fff5c9cdd1ce327adef68ad98632ab9204168c311f340` |
+
+These are public testnet deployments, not mainnet contracts. Testnet tokens have no guaranteed real-world value.
+
+To connect the Vercel deployment to these contracts, add the following variables in the Vercel project settings and redeploy:
+
+```env
+VITE_CONTRACT_CCT=0x72ba007D3D4D6DB4208Df978DdEa09Ee534E725D
+VITE_CONTRACT_MARKETPLACE=0xF90A826F81465bA2177B44b736be10B85C8F429B
+VITE_CONTRACT_REGISTRY=0x7EaE52b82adB080E47757D188715eF938A63A165
+VITE_CHAIN_ID=91562037
+```
+
+The complete deployment record, including transaction hashes, is in [`deployments.json`](./deployments.json).
+
 ## Overview
 
 CarbonX models a carbon-credit lifecycle on Ethereum-compatible networks:
@@ -96,7 +119,7 @@ In another terminal:
 npm run deploy:local
 ```
 
-The deployment script writes deployment details to `deployments.json` and may update the frontend environment configuration.
+The deployment script writes deployment details and transaction hashes to `deployments.json` and updates the local `frontend/.env` file.
 
 ## Wallet and Network Configuration
 
@@ -112,6 +135,23 @@ VITE_CHAIN_ID=11155111
 ```
 
 Use the chain ID that matches your deployment; `11155111` is Ethereum Sepolia. Never put a private key in frontend environment variables. Deployment secrets such as `PRIVATE_KEY` belong only in a local, untracked backend/deployment `.env` file.
+
+## Deploy to MST Testnet
+
+Create a local `.env` file in the repository root with a funded MST Testnet deployer:
+
+```env
+PRIVATE_KEY=your_testnet_deployer_private_key
+MST_TESTNET_RPC=https://testnetrpc.mstblockchain.com
+```
+
+Then deploy the contracts:
+
+```bash
+npm run deploy:mst-testnet
+```
+
+The deployment script checks the network chain ID, records addresses and transaction hashes in `deployments.json`, and writes the local frontend configuration. Do not commit `.env` or expose its private key.
 
 ## Deploy to Sepolia
 
