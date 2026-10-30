@@ -1,129 +1,109 @@
-# 🌱 CarbonX — Blockchain Carbon Credit Trading Platform
+# CarbonX
 
-> A fully decentralized, end-to-end carbon credit issuance, trading, and retirement platform built on Ethereum.
+**A blockchain-based carbon credit platform for registering projects, trading tokenized credits, and recording carbon credit retirements.**
 
-[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?logo=solidity)](https://soliditylang.org)
-[![Hardhat](https://img.shields.io/badge/Framework-Hardhat-yellow)](https://hardhat.org)
-[![React](https://img.shields.io/badge/Frontend-React+Vite-61DAFB?logo=react)](https://vitejs.dev)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.20-363636?logo=solidity)](https://soliditylang.org/)
+[![Hardhat](https://img.shields.io/badge/Contracts-Hardhat-yellow)](https://hardhat.org/)
+[![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?logo=react)](https://vite.dev/)
+[![ethers.js](https://img.shields.io/badge/Web3-ethers.js%20v6-2535A0)](https://docs.ethers.org/v6/)
 
----
+## Live Demo
 
-## 📐 Architecture
+- **Application:** [carboncredits-nu.vercel.app](https://carboncredits-nu.vercel.app/)
+- **Product walkthrough:** [Watch the CarbonX demo on Loom](https://www.loom.com/share/45af8666b2e744e185a0877d2a0afe73)
 
+> The app includes an explicit Demo Mode for exploring the interface. Demo activity is stored locally in the browser and is **not** submitted to a blockchain. Live contract actions require a supported wallet, the correct network, and deployed contract addresses.
+
+## Overview
+
+CarbonX models a carbon-credit lifecycle on Ethereum-compatible networks:
+
+1. A seller registers a carbon project and submits its supporting document reference.
+2. An authorized verifier reviews the project and approves a credit allocation.
+3. An authorized verifier mints CCT tokens to a registered seller.
+4. Sellers list credits in the marketplace; buyers purchase available credits.
+5. Credit holders can retire tokens and generate a retirement certificate.
+
+The contracts use CCT as an ERC-20 token, with the project registry and marketplace handling project status and credit listings.
+
+## Features
+
+- Wallet chooser for detected browser wallets, with an explicit user connection step.
+- Role-based project registration, review, approval, and credit issuance.
+- Marketplace support for partial credit purchases and seller listings.
+- Buyer portfolio for credit balances, purchases, and retirements.
+- PDF retirement certificates, with demo status distinguished from on-chain proof.
+- Project and marketplace transparency views.
+- Local Demo Mode for exploring the product without submitting transactions.
+
+## Technology
+
+- **Smart contracts:** Solidity, OpenZeppelin, Hardhat
+- **Frontend:** React, Vite, ethers.js v6, React Router
+- **Optional backend:** Node.js, Express, MongoDB
+
+## Repository Structure
+
+```text
+contracts/       Solidity token, project registry, and marketplace
+scripts/         Contract deployment scripts
+test/            Hardhat contract tests
+frontend/        React application
+backend/         Optional Express API and MongoDB model
 ```
-carbonx/
-├── contracts/                  # Solidity smart contracts
-│   ├── CarbonCreditToken.sol   # ERC-20 CCT token (mint, retire, roles)
-│   ├── ProjectRegistry.sol     # Project registration & verification
-│   └── Marketplace.sol         # P2P trading with partial fills
-├── scripts/
-│   └── deploy.js               # Deployment script (all 3 contracts)
-├── test/
-│   └── CarbonX.test.js         # 40+ Mocha/Chai tests
-├── frontend/                   # React + Vite + ethers.js v6
-│   └── src/
-│       ├── context/            # Web3Context (wallet, contracts, roles)
-│       ├── contracts/          # ABIs & addresses
-│       ├── pages/
-│       │   ├── LandingPage.jsx
-│       │   ├── TransparencyPage.jsx
-│       │   ├── ProjectDetail.jsx
-│       │   ├── seller/         # SellerDashboard, RegisterProject, ManageListings
-│       │   ├── buyer/          # BuyerDashboard, Marketplace, Portfolio
-│       │   └── admin/          # AdminDashboard (verify, mint, grant roles)
-│       └── utils/              # Formatting helpers
-└── backend/                    # Node.js + Express + MongoDB
-    ├── index.js                # REST API server
-    └── models/Project.js       # Mongoose schema
-```
 
----
+## Getting Started
 
-## 🔑 Core Concept
+### Prerequisites
 
-| Entity | Role |
-|---|---|
-| **CCT Token** | 1 CCT = 1 ton CO₂ offset (ERC-20, ERC-20Burnable) |
-| **VERIFIER** | Reviews projects and authorizes minting |
-| **SELLER** | Registers projects, receives minted CCT, creates listings |
-| **BUYER** | Purchases CCT, retires credits, gets PDF certificate |
-| **ADMIN** | Full access — grant/revoke all roles |
+- Node.js 18 or later
+- npm 9 or later
+- A browser wallet for live on-chain actions
+- MongoDB only if you intend to run the optional backend
 
----
+### Install and run the frontend
 
-## 🛠 Prerequisites
+Clone the repository and install its dependencies:
 
-- **Node.js** ≥ 18
-- **npm** ≥ 9
-- **MetaMask** browser extension
-- **MongoDB** (optional — for backend)
-- **Infura/Alchemy** RPC URL (for Sepolia deployment)
-
----
-
-## ⚡ Quick Start
-
-### 1. Clone & Install Root Dependencies
 ```bash
-cd hakethon
+git clone https://github.com/Shubhham-golekar/Carbon_Credits.git
+cd Carbon_Credits
 npm install
+npm --prefix frontend install
+npm --prefix frontend run dev
 ```
 
-### 2. Compile Contracts
+Vite starts the frontend at `http://localhost:5173`.
+
+### Compile contracts and run tests
+
 ```bash
 npm run compile
-# OR
-npx hardhat compile
-```
-
-### 3. Run Tests
-```bash
 npm test
-# OR
-npx hardhat test
 ```
 
-### 4. Start Local Hardhat Node
+### Run a local blockchain
+
+In one terminal:
+
 ```bash
 npm run node
-# This starts a local blockchain at http://127.0.0.1:8545
 ```
 
-### 5. Deploy Locally
+In another terminal:
+
 ```bash
 npm run deploy:local
 ```
 
-This creates `deployments.json` in the root and auto-updates `frontend/.env`.
+The deployment script writes deployment details to `deployments.json` and may update the frontend environment configuration.
 
----
+## Wallet and Network Configuration
 
-## 🚀 Deploy to Sepolia Testnet
+Click **Connect Wallet** in the application and choose one of the detected browser wallets. The wallet will ask you to approve the connection. The app does not request wallet access automatically on page load.
 
-### Step 1 — Configure environment
-```bash
-cp .env.example .env
-```
+For live transactions, configure the frontend with addresses for the deployed contracts and the corresponding chain ID:
 
-Edit `.env`:
-```env
-PRIVATE_KEY=your_wallet_private_key_here
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
-ETHERSCAN_API_KEY=your_etherscan_key
-```
-
-> ⚠️ **Never commit `.env` to git!** It contains your private key.
-
-### Step 2 — Deploy
-```bash
-npm run deploy:sepolia
-```
-
-Contract addresses will be printed and saved to `deployments.json`.
-
-### Step 3 — Update Frontend
-After deployment, `frontend/.env` is updated automatically. If not, copy manually:
 ```env
 VITE_CONTRACT_CCT=0x...
 VITE_CONTRACT_MARKETPLACE=0x...
@@ -131,149 +111,53 @@ VITE_CONTRACT_REGISTRY=0x...
 VITE_CHAIN_ID=11155111
 ```
 
----
+Use the chain ID that matches your deployment; `11155111` is Ethereum Sepolia. Never put a private key in frontend environment variables. Deployment secrets such as `PRIVATE_KEY` belong only in a local, untracked backend/deployment `.env` file.
 
-## 🌐 Frontend Setup
+## Deploy to Sepolia
 
-```bash
-cd frontend
-npm install
-npm run dev
-# Opens at http://localhost:5173
+Create a local `.env` file in the repository root and provide the deployment settings:
+
+```env
+PRIVATE_KEY=your_deployer_private_key
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_PROJECT_KEY
+ETHERSCAN_API_KEY=your_etherscan_api_key
 ```
 
-### Required wallet setup for full functionality:
-1. Import your deployer account into MetaMask
-2. Add Sepolia (or localhost) network
-3. Connect wallet on the site
-4. The deployer has ADMIN + VERIFIER roles automatically
+Then deploy:
 
----
+```bash
+npm run deploy:sepolia
+```
 
-## 🔧 Backend Setup (Optional)
+Keep `.env` out of version control and never publish private keys or RPC credentials. Verify the resulting contract addresses and chain configuration before using live transactions.
+
+## Optional Backend
 
 ```bash
 cd backend
 npm install
-
-# Create .env
-echo "MONGODB_URI=mongodb://localhost:27017/carbonx" > .env
-echo "PORT=5000" >> .env
-
-npm run dev
-# Starts at http://localhost:5000
 ```
 
-API endpoints:
-```
-GET    /api/projects              - List all projects
-GET    /api/projects/:id          - Get single project  
-POST   /api/projects              - Register project metadata
-PATCH  /api/projects/:id          - Update metadata
-PATCH  /api/projects/:id/status   - Update approval status
-POST   /api/projects/:id/upload   - Upload documents
-GET    /api/stats                 - Platform statistics
-GET    /api/health                - Health check
-```
+Configure `MONGODB_URI` and `PORT` in a local `.env` file, then start the backend with the script defined in `backend/package.json`.
 
----
+## Smart Contracts
 
-## 📋 Smart Contract Details
-
-### CarbonCreditToken.sol (CCT)
-
-```solidity
-// Roles
-VERIFIER_ROLE — can mint credits
-SELLER_ROLE   — can receive minted credits
-DEFAULT_ADMIN — can grant/revoke all roles
-
-// Key functions
-mint(seller, amount, projectId)          // VERIFIER only
-retire(amount, projectId, reason)        // Any token holder
-registerSeller(address)                  // ADMIN only
-getRoles(address) returns (bool, bool, bool)
-```
-
-### ProjectRegistry.sol
-
-```solidity
-registerProject(name, desc, location, type, credits, ipfsHash)   // SELLER
-approveProject(projectId, approvedCredits)                         // VERIFIER
-rejectProject(projectId, reason)                                   // VERIFIER
-```
-
-### Marketplace.sol
-
-```solidity
-createListing(amount, pricePerToken, projectId)   // Any token holder
-cancelListing(listingId)                           // Seller or ADMIN
-buy(listingId, amount) payable                     // Anyone
-quoteBuy(listingId, amount) view                   // Preview cost
-```
-
----
-
-## 🧪 Test Coverage
-
-```
-CarbonX Platform
-  CarbonCreditToken
-    Roles & Access Control   ✅ 5 tests
-    Minting                  ✅ 6 tests
-    Retiring                 ✅ 7 tests
-  ProjectRegistry
-    Registration             ✅ 5 tests
-    Approval & Rejection     ✅ 5 tests
-  Marketplace
-    Creating Listings        ✅ 4 tests
-    Cancelling Listings      ✅ 3 tests
-    Buying – Full Purchase   ✅ 5 tests
-    Buying – Partial         ✅ 4 tests
-    Price Updates            ✅ 2 tests
-    Admin Functions          ✅ 4 tests
-    Sale History & Views     ✅ 2 tests
-```
-
----
-
-## 🔒 Security Features
-
-| Feature | Implementation |
+| Contract | Responsibility |
 |---|---|
-| Reentrancy protection | `ReentrancyGuard` on all state-changing functions |
-| Role-based access | `AccessControl` with VERIFIER, SELLER, ADMIN roles |
-| Input validation | `require()` guards on all sensitive parameters |
-| CEI pattern | Check-Effects-Interactions in `buy()` |
-| Overpayment refund | ETH excess automatically returned in `buy()` |
-| Token escrow | Tokens pulled into marketplace contract on listing |
-| Anti-double retire | Balance check before burn |
-| Anti-over-sell | `remainingAmount` check before purchase |
-| Fee cap | Platform fee hard-capped at 10% (1000 bps) |
+| `CarbonCreditToken.sol` | ERC-20 carbon credit token, role-based minting, and credit retirement |
+| `ProjectRegistry.sol` | Project registration, review, approval, and status |
+| `Marketplace.sol` | Escrowed listings, partial purchases, sale records, and platform fees |
 
----
+Important operations include:
 
-## 🌍 Platform Flow
+- **CCT:** `mint`, `retire`, `registerSeller`, `getRoles`
+- **Registry:** `registerProject`, `approveProject`, `rejectProject`
+- **Marketplace:** `createListing`, `cancelListing`, `buy`, `quoteBuy`
 
-```
-1. Admin grants SELLER_ROLE to seller
-2. Seller registers project (name, docs, IPFS hash) → Pending
-3. Verifier reviews → approves with credit allocation
-4. Verifier/Admin calls mint() → CCT tokens sent to seller
-5. Seller approves Marketplace → createListing(amount, price)
-6. Buyer calls buy(listingId, amount) with ETH
-7. Tokens transferred to buyer; ETH to seller (minus 2.5% fee)
-8. Buyer can retire(amount, projectId, reason) → tokens burned
-9. Frontend generates PDF certificate with tx hash
-10. Every step is permanently recorded on-chain
-```
+The deployed contract code and configuration determine the final behavior. Review the contracts and deployment settings before using real assets.
 
----
+## Security and Demo Disclaimer
 
-## 📜 License
+CarbonX is a software project and should not be treated as an audited carbon registry, certification body, or financial product. Smart-contract controls such as role checks, input validation, and reentrancy protection do not replace an independent security audit.
 
-MIT — see [LICENSE](LICENSE)
-
----
-
-*Built for the Hackathon 2026 · CarbonX Team*
+Demo Mode uses browser-local sample data. It does not create verified carbon credits, transfer funds, or record blockchain retirements. Only transactions confirmed by the connected wallet on a network with the correct deployed contracts are on-chain actions.
