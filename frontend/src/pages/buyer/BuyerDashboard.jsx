@@ -94,8 +94,8 @@ export default function BuyerDashboard() {
     <div className="connect-banner">
       <div className="connect-banner-icon">📊</div>
       <h2>Connect your wallet</h2>
-      <p>Connect MetaMask to view your buyer dashboard</p>
-      <button className="btn btn-primary btn-lg" onClick={connect}>🦊 Connect Wallet</button>
+      <p>Connect BrigadeKey to view your buyer dashboard</p>
+      <button className="btn btn-primary btn-lg" onClick={connect}>🔑 Connect BrigadeKey</button>
     </div>
   )
 

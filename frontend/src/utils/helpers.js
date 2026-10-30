@@ -134,7 +134,7 @@ export function formatContractError(err, fallback = "Transaction failed") {
   const msg = err.message || "";
 
   if (err.code === 4001 || msg.includes("User rejected") || msg.includes("user rejected")) {
-    return "Transaction was cancelled in MetaMask.";
+    return "Transaction was cancelled in your wallet.";
   }
   if (msg.includes("OutOfFunds") || msg.includes("insufficient funds")) {
     return "Insufficient ETH in your wallet to cover transaction and gas fees.";

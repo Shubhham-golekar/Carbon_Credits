@@ -66,7 +66,7 @@ export default function ManageListings() {
     <div className="connect-banner">
       <div className="connect-banner-icon">📋</div>
       <h2>Connect your wallet</h2>
-      <button className="btn btn-primary btn-lg" onClick={connect}>🦊 Connect Wallet</button>
+      <button className="btn btn-primary btn-lg" onClick={connect}>🔑 Connect BrigadeKey</button>
     </div>
   )
 
@@ -78,7 +78,7 @@ export default function ManageListings() {
   )
 
   const handleApprove = async () => {
-    const tid = toast.loading('🦊 Please confirm token approval in MetaMask...')
+    const tid = toast.loading('🔑 Please confirm token approval in BrigadeKey...')
     try {
       if (contracts.cct && contracts.marketplace) {
         const tx = await contracts.cct.approve(
@@ -99,7 +99,7 @@ export default function ManageListings() {
       fetchListings()
     } catch (err) {
       if (err.code === 4001 || (err.message && err.message.includes('rejected'))) {
-        toast.error('❌ Approval rejected in MetaMask.', { id: tid })
+        toast.error('Approval rejected in your wallet.', { id: tid })
       } else {
         toast.error(err.reason || 'Approval failed', { id: tid })
       }
@@ -114,7 +114,7 @@ export default function ManageListings() {
     const amountWei = ethers.parseEther(form.amount)
 
     setFormLoading(true)
-    const tid = toast.loading('🦊 Please confirm listing creation in MetaMask...')
+    const tid = toast.loading('🔑 Please confirm listing creation in BrigadeKey...')
     try {
       const priceWei = ethers.parseEther(form.pricePerToken)
       let onChainDone = false
@@ -142,7 +142,7 @@ export default function ManageListings() {
         } catch (walletErr) {
           console.warn('Wallet transaction skipped/failed:', walletErr)
           if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
-            toast.error('❌ Listing was cancelled in MetaMask.', { id: tid })
+            toast.error('Listing was cancelled in your wallet.', { id: tid })
             return
           }
           toast('⚠️ Insufficient ETH for gas on this network. Saved to local storage for demo testing.', { id: tid, icon: '⚠️', duration: 5000 })

@@ -134,8 +134,8 @@ export default function SellerDashboard() {
     <div className="connect-banner">
       <div className="connect-banner-icon">🏭</div>
       <h2>Connect your wallet</h2>
-      <p>Connect your MetaMask wallet to access the Seller Dashboard</p>
-      <button className="btn btn-primary btn-lg" onClick={connect}>🦊 Connect Wallet</button>
+      <p>Connect BrigadeKey to access the Seller Dashboard</p>
+      <button className="btn btn-primary btn-lg" onClick={connect}>🔑 Connect BrigadeKey</button>
     </div>
   )
 

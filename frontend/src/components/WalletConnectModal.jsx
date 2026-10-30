@@ -4,23 +4,30 @@ import { useWeb3 } from '../context/Web3Context'
 /**
  * WalletConnectModal
  * Appears on first visit (if wallet not connected).
- * Triggers real MetaMask eth_requestAccounts flow.
+ * Connects through the BrigadeKey browser wallet.
  */
 export default function WalletConnectModal({ onClose }) {
-  const { connect, isConnecting, isConnected, error } = useWeb3()
-  const [step, setStep]         = useState('pick')   // 'pick' | 'connecting' | 'no-mm'
+  const { connect, getWalletOptions, isConnected, error } = useWeb3()
+  const [step, setStep]         = useState('pick')   // 'pick' | 'connecting'
   const [shake, setShake]       = useState(false)
-  const hasMetaMask             = Boolean(window.ethereum?.isMetaMask)
+  const [walletOptions, setWalletOptions] = useState([])
+
+  useEffect(() => {
+    let active = true
+    getWalletOptions().then((options) => {
+      if (active) setWalletOptions(options)
+    })
+    return () => { active = false }
+  }, [getWalletOptions])
 
   // Close when connected
   useEffect(() => {
     if (isConnected) onClose?.()
   }, [isConnected, onClose])
 
-  const handleMetaMask = async () => {
-    if (!hasMetaMask) { setStep('no-mm'); return }
+  const handleWallet = async (walletProvider) => {
     setStep('connecting')
-    const success = await connect()
+    const success = await connect(walletProvider)
     if (success) {
       onClose?.()
     } else {
@@ -28,6 +35,8 @@ export default function WalletConnectModal({ onClose }) {
       setTimeout(() => { setShake(false); setStep('pick') }, 700)
     }
   }
+
+  const requiresPageRefresh = /was updated.*refresh this page/i.test(error || '')
 
   return (
     <div className="wallet-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose?.()}>
@@ -56,30 +65,36 @@ export default function WalletConnectModal({ onClose }) {
         {/* ── PICK STEP ── */}
         {step === 'pick' && (
           <>
-            {/* MetaMask */}
-            <div
-              className="wallet-option"
-              onClick={handleMetaMask}
-              id="wallet-metamask-btn"
-            >
-              <div className="wallet-option-icon" style={{ background: 'rgba(249,115,22,.12)', border: '1px solid rgba(249,115,22,.2)' }}>
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg"
-                  alt="MetaMask"
-                  style={{ width: 26, height: 26 }}
-                  onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.textContent = '🦊' }}
-                />
-              </div>
-              <div>
-                <div className="wallet-option-name">MetaMask</div>
-                <div className="wallet-option-desc">
-                  {hasMetaMask ? 'Connect using browser extension' : 'Not detected — install MetaMask'}
+            <p style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginBottom: '.5rem' }}>
+              Select BrigadeKey from your detected browser wallets.
+            </p>
+            {walletOptions.length > 0 ? walletOptions.map((wallet, index) => (
+              <button
+                className="wallet-option"
+                onClick={() => handleWallet(wallet.provider)}
+                id={wallet.isBrigadeKey ? 'wallet-brigadekey-btn' : `wallet-provider-${index}`}
+                key={wallet.id}
+                type="button"
+                style={{ width: '100%', color: 'inherit', textAlign: 'left' }}
+              >
+                <div className="wallet-option-icon" style={{ background: 'rgba(34,197,94,.12)', border: '1px solid rgba(34,197,94,.2)' }}>
+                  <span aria-hidden="true" style={{ fontSize: 22 }}>🔑</span>
                 </div>
-              </div>
-              <span style={{ marginLeft: 'auto', fontSize: '.7rem', color: 'var(--accent-light)', fontWeight: 600 }}>
-                {hasMetaMask ? 'DETECTED' : 'INSTALL'}
-              </span>
-            </div>
+                <div>
+                  <div className="wallet-option-name">{wallet.name}</div>
+                  <div className="wallet-option-desc">
+                    {wallet.isBrigadeKey ? 'BrigadeKey wallet' : 'Browser wallet provider'}
+                  </div>
+                </div>
+                <span style={{ marginLeft: 'auto', fontSize: '.7rem', color: 'var(--accent-light)', fontWeight: 600 }}>
+                  CONNECT
+                </span>
+              </button>
+            )) : (
+              <p style={{ fontSize: '.85rem', color: 'var(--text-muted)', padding: '.75rem 0' }}>
+                No browser wallet detected. Enable BrigadeKey and reopen this window.
+              </p>
+            )}
 
             {/* WalletConnect */}
             <div
@@ -131,21 +146,16 @@ export default function WalletConnectModal({ onClose }) {
                 borderRadius: 'var(--radius-md)', fontSize: '.8rem', color: '#f87171',
               }}>
                 ⚠ {error}
-              </div>
-            )}
-
-            {/* No MetaMask install prompt */}
-            {!hasMetaMask && (
-              <div style={{ marginTop: '.75rem', textAlign: 'center' }}>
-                <a
-                  href="https://metamask.io/download/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost btn-sm"
-                  style={{ width: '100%' }}
-                >
-                  Install MetaMask →
-                </a>
+                {requiresPageRefresh && (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => window.location.reload()}
+                    style={{ display: 'flex', marginTop: '.65rem' }}
+                    type="button"
+                  >
+                    Refresh page and reconnect
+                  </button>
+                )}
               </div>
             )}
 
@@ -166,11 +176,11 @@ export default function WalletConnectModal({ onClose }) {
               background: 'rgba(249,115,22,.1)', border: '1px solid rgba(249,115,22,.25)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 1.25rem', fontSize: '2rem',
-            }}>🦊</div>
+            }}>🔑</div>
             <div className="spinner-lg" style={{ margin: '0 auto 1rem' }} />
-            <h4 style={{ marginBottom: '.5rem' }}>Waiting for MetaMask</h4>
+            <h4 style={{ marginBottom: '.5rem' }}>Waiting for BrigadeKey</h4>
             <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>
-              Check the MetaMask popup in your browser extension.<br />
+              Check the BrigadeKey popup in your browser extension.<br />
               Approve the connection request to continue.
             </p>
             <button
@@ -183,28 +193,6 @@ export default function WalletConnectModal({ onClose }) {
           </div>
         )}
 
-        {/* ── NO METAMASK STEP ── */}
-        {step === 'no-mm' && (
-          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🦊</div>
-            <h4 style={{ marginBottom: '.5rem' }}>MetaMask Not Found</h4>
-            <p style={{ fontSize: '.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-              MetaMask browser extension is not installed.<br />
-              Install it to connect your Ethereum wallet.
-            </p>
-            <a
-              href="https://metamask.io/download/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-              style={{ display: 'inline-flex', marginBottom: '.75rem' }}
-            >
-              Install MetaMask
-            </a>
-            <br />
-            <button className="btn btn-ghost btn-sm" onClick={() => setStep('pick')}>Go back</button>
-          </div>
-        )}
       </div>
 
       <style>{`

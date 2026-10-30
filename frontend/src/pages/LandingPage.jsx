@@ -67,7 +67,7 @@ export default function LandingPage() {
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/marketplace')}>Marketplace</button>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/transparency')}>Transparency</button>
           <button className="btn btn-primary btn-sm" onClick={handleCTA}>
-            {isConnected ? 'Open App →' : '🦊 Connect Wallet'}
+            {isConnected ? 'Open App →' : '🔑 Connect BrigadeKey'}
           </button>
         </div>
       </nav>
@@ -120,7 +120,7 @@ export default function LandingPage() {
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '4rem' }}>
           <button className="btn btn-primary btn-xl" onClick={handleCTA}>
-            {isConnected ? 'Open Dashboard →' : '🦊 Connect Wallet'}
+            {isConnected ? 'Open Dashboard →' : '🔑 Connect BrigadeKey'}
           </button>
           <button className="btn btn-ghost btn-xl" onClick={() => navigate('/marketplace')}>
             Browse Marketplace
@@ -220,7 +220,7 @@ export default function LandingPage() {
             Join thousands of businesses and individuals fighting climate change on-chain.
           </p>
           <button className="btn btn-primary btn-xl" onClick={handleCTA}>
-            {isConnected ? 'Open App →' : '🦊 Connect MetaMask'}
+            {isConnected ? 'Open App →' : '🔑 Connect BrigadeKey'}
           </button>
         </div>
       </section>

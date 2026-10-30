@@ -25,7 +25,8 @@ const NAV_ITEMS = [
 ]
 
 export default function Layout() {
-  const { isConnected, address, chainId, roles, disconnect, switchNetwork, connect, connectDemo } = useWeb3()
+  const { isConnected, address, chainId, roles, disconnect, switchNetwork, connectDemo } = useWeb3()
+  const [showWalletModal, setShowWalletModal] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -129,8 +130,8 @@ export default function Layout() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <button className="btn btn-primary w-full btn-sm" onClick={connect}>
-                🦊 Connect MetaMask
+              <button className="btn btn-primary w-full btn-sm" onClick={() => setShowWalletModal(true)}>
+                🔑 Connect BrigadeKey
               </button>
               <button className="btn btn-ghost w-full btn-xs text-faint" onClick={connectDemo}>
                 ⚡ Instant Demo Mode
@@ -151,7 +152,7 @@ export default function Layout() {
                 className="badge badge-red"
                 style={{ cursor: 'pointer', border: 'none', padding: '.3rem .6rem' }}
                 onClick={() => switchNetwork(11155111)}
-                title="Click to switch MetaMask to Sepolia Testnet"
+                title="Click to switch your wallet to Sepolia Testnet"
               >
                 Wrong Network (Switch to Sepolia)
               </button>
@@ -171,8 +172,8 @@ export default function Layout() {
                 <button className="btn btn-ghost btn-sm" onClick={connectDemo} title="Login instantly for demo">
                   ⚡ Demo Mode
                 </button>
-                <button className="btn btn-primary btn-sm" onClick={connect}>
-                  🦊 Connect Wallet
+                <button className="btn btn-primary btn-sm" onClick={() => setShowWalletModal(true)}>
+                  🔑 Connect BrigadeKey
                 </button>
               </div>
             )}
@@ -183,6 +184,7 @@ export default function Layout() {
           <Outlet />
         </div>
       </div>
+      {showWalletModal && <WalletConnectModal onClose={() => setShowWalletModal(false)} />}
     </div>
   )
 }

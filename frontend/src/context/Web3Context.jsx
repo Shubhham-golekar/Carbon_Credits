@@ -16,6 +16,7 @@ const Web3Context = createContext(null);
 
 export function Web3Provider({ children }) {
   const [provider,     setProvider]     = useState(null);
+  const [walletProvider, setWalletProvider] = useState(null);
   const [signer,       setSigner]       = useState(null);
   const [address,      setAddress]      = useState(null);
   const [chainId,      setChainId]      = useState(null);
@@ -29,7 +30,55 @@ export function Web3Provider({ children }) {
   // ── Ref so event listeners always see the latest isConnected value
   //    without needing to be re-registered on every state change ────────────
   const isConnectedRef = useRef(false);
+  const injectedProvidersRef = useRef([]);
   useEffect(() => { isConnectedRef.current = isConnected; }, [isConnected]);
+
+  const getWalletOptions = useCallback(async () => {
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const providers = [
+      ...injectedProvidersRef.current.map(({ info, provider: injectedProvider }) => ({ info, provider: injectedProvider })),
+      ...(window.ethereum?.providers || []).map((injectedProvider) => ({ provider: injectedProvider })),
+      ...(window.ethereum ? [{ provider: window.ethereum }] : []),
+    ].filter(({ provider: injectedProvider }, index, candidates) =>
+      injectedProvider?.request && candidates.findIndex((candidate) => candidate.provider === injectedProvider) === index
+    );
+
+    return providers.map(({ info, provider: injectedProvider }, index) => {
+      const metadataName = `${info?.name || ""} ${info?.rdns || ""} ${injectedProvider.wallet?.name || ""}`;
+      const knownWallet = [
+        [injectedProvider.isBrigadeKey || injectedProvider.isBrigade || /brigade/i.test(metadataName), "BrigadeKey"],
+        [injectedProvider.isMetaMask, "MetaMask"],
+        [injectedProvider.isBraveWallet, "Brave Wallet"],
+        [injectedProvider.isCoinbaseWallet, "Coinbase Wallet"],
+        [injectedProvider.isRabby, "Rabby Wallet"],
+        [injectedProvider.isOkxWallet || injectedProvider.isOKXWallet, "OKX Wallet"],
+      ].find(([matches]) => matches)?.[1];
+
+      return {
+        id: info?.uuid || `injected-wallet-${index}`,
+        name: info?.name || knownWallet || `Browser Wallet ${index + 1}`,
+        isBrigadeKey: /brigade/i.test(metadataName) || injectedProvider.isBrigadeKey || injectedProvider.isBrigade,
+        provider: injectedProvider,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleAnnounceProvider = (event) => {
+      const { info, provider: injectedProvider } = event.detail || {};
+      if (!info || !injectedProvider) return;
+      injectedProvidersRef.current = [
+        ...injectedProvidersRef.current.filter((item) => item.info.uuid !== info.uuid),
+        { info, provider: injectedProvider },
+      ];
+    };
+
+    window.addEventListener("eip6963:announceProvider", handleAnnounceProvider);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () => window.removeEventListener("eip6963:announceProvider", handleAnnounceProvider);
+  }, []);
 
   // ── Initialize contracts ─────────────────────────────────────────────────
   const initContracts = useCallback((signerOrProvider) => {
@@ -52,7 +101,7 @@ export function Web3Provider({ children }) {
     }
   }, []);
 
-  // ── Instant Hackathon Demo Connect (No MetaMask Required) ────────────────
+  // ── Instant Hackathon Demo Connect ───────────────────────────────────────
   const connectDemo = useCallback(() => {
     const demoAddr = '0x40F7df064D6d17d00FF39056aFB183244F74dC6dc';
     setAddress(demoAddr);
@@ -64,16 +113,24 @@ export function Web3Provider({ children }) {
     return true;
   }, []);
 
-  // ── Connect wallet (Direct MetaMask request with Demo fallback) ───────────
-  const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      return connectDemo();
-    }
+  // ── Connect BrigadeKey through its injected EIP-1193 provider ─────────────
+  const connect = useCallback(async (selectedProvider = null) => {
     try {
       setIsConnecting(true);
       setError(null);
 
-      const accounts = await window.ethereum.request({
+      const walletOptions = await getWalletOptions();
+      const injectedProvider = selectedProvider ||
+        walletOptions.find((wallet) => wallet.isBrigadeKey)?.provider ||
+        (walletOptions.length === 1 ? walletOptions[0].provider : null);
+
+      if (!injectedProvider?.request) {
+        throw new Error(walletOptions.length > 1
+          ? "Select BrigadeKey from the detected browser wallets."
+          : "BrigadeKey wallet not detected. Install or enable the BrigadeKey browser wallet.");
+      }
+
+      const accounts = await injectedProvider.request({
         method: "eth_requestAccounts",
       });
 
@@ -82,11 +139,12 @@ export function Web3Provider({ children }) {
         return false;
       }
 
-      const web3Provider = new ethers.BrowserProvider(window.ethereum);
+      const web3Provider = new ethers.BrowserProvider(injectedProvider);
       const web3Signer  = await web3Provider.getSigner();
       const userAddress = accounts[0];
       const network     = await web3Provider.getNetwork();
 
+      setWalletProvider(injectedProvider);
       setProvider(web3Provider);
       setSigner(web3Signer);
       setAddress(userAddress);
@@ -112,10 +170,11 @@ export function Web3Provider({ children }) {
       return true;
     } catch (err) {
       console.warn("Wallet connect error:", err);
+      setError(err.message || "Failed to connect BrigadeKey wallet.");
       if (err.code === 4001 || (err.message && err.message.includes("User rejected"))) {
-        toast.error("Wallet connection cancelled.");
+        toast.error("BrigadeKey connection cancelled.");
       } else if (err.code === -32002 || (err.message && err.message.includes("already pending"))) {
-        toast("MetaMask popup already open! Please check the fox icon in your browser.", { icon: "🦊" });
+        toast("BrigadeKey wallet popup is already open. Please check your browser wallet.");
       } else {
         toast.error(err.message || "Failed to connect wallet");
       }
@@ -123,11 +182,12 @@ export function Web3Provider({ children }) {
     } finally {
       setIsConnecting(false);
     }
-  }, [initContracts, fetchRoles, connectDemo]);
+  }, [initContracts, fetchRoles, getWalletOptions]);
 
   // ── Disconnect ───────────────────────────────────────────────────────────
   const disconnect = useCallback(() => {
     setProvider(null);
+    setWalletProvider(null);
     setSigner(null);
     setAddress(null);
     setChainId(null);
@@ -137,27 +197,20 @@ export function Web3Provider({ children }) {
     setContracts({ cct: null, marketplace: null, registry: null });
   }, []);
 
-  // ── MetaMask event listeners — registered ONCE on mount ──────────────────
-  // Using refs so handlers always see fresh values without re-subscribing.
+  // ── Keep the selected wallet's account and network in sync ────────────────
   const connectRef    = useRef(connect);
   const disconnectRef = useRef(disconnect);
   useEffect(() => { connectRef.current    = connect;    }, [connect]);
   useEffect(() => { disconnectRef.current = disconnect; }, [disconnect]);
 
   useEffect(() => {
-    if (!window.ethereum) return;
-
-    // Increase max listeners to silence the MetaMask warning
-    if (window.ethereum.setMaxListeners) {
-      window.ethereum.setMaxListeners(50);
-    }
-
+    if (!walletProvider?.on) return;
     const handleAccountsChanged = async (accounts) => {
       if (accounts.length === 0) {
         disconnectRef.current();
       } else if (isConnectedRef.current) {
         // Account switched while connected — refresh connection
-        await connectRef.current();
+        await connectRef.current(walletProvider);
       }
     };
 
@@ -165,54 +218,34 @@ export function Web3Provider({ children }) {
       window.location.reload();
     };
 
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged",    handleChainChanged);
+    walletProvider.on("accountsChanged", handleAccountsChanged);
+    walletProvider.on("chainChanged", handleChainChanged);
 
     return () => {
-      window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-      window.ethereum.removeListener("chainChanged",    handleChainChanged);
+      walletProvider.removeListener("accountsChanged", handleAccountsChanged);
+      walletProvider.removeListener("chainChanged",    handleChainChanged);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← Empty deps: register listeners ONCE only
-
-  // ── Auto-popup / Auto-connect MetaMask on DApp open ───────────────────────
-  useEffect(() => {
-    if (!window.ethereum) return;
-    let cancelled = false;
-
-    // Trigger connect popup shortly after page loads
-    const timer = setTimeout(() => {
-      if (!cancelled) {
-        connectRef.current();
-      }
-    }, 450);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ← Trigger on mount
+  }, [walletProvider]);
 
   // ── Read-only provider for public data ───────────────────────────────────
   const getReadOnlyContracts = useCallback(() => {
-    if (!window.ethereum) return null;
-    const p = new ethers.BrowserProvider(window.ethereum);
+    if (!walletProvider) return null;
+    const p = new ethers.BrowserProvider(walletProvider);
     return initContracts(p);
-  }, [initContracts]);
+  }, [initContracts, walletProvider]);
 
   // ── Switch Network helper ────────────────────────────────────────────────
   const switchNetwork = useCallback(async (targetChainId = 11155111) => {
-    if (!window.ethereum) return;
+    if (!walletProvider) return;
     const hexChainId = "0x" + targetChainId.toString(16);
     try {
-      await window.ethereum.request({
+      await walletProvider.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: hexChainId }],
       });
     } catch (switchError) {
       if (switchError.code === 4902 && targetChainId === 31337) {
-        await window.ethereum.request({
+        await walletProvider.request({
           method: "wallet_addEthereumChain",
           params: [{
             chainId: "0x7a69",
@@ -223,13 +256,13 @@ export function Web3Provider({ children }) {
         });
       }
     }
-  }, []);
+  }, [walletProvider]);
 
   const value = {
     provider, signer, address, chainId, ethBalance,
     isConnected, isConnecting, error,
     roles, contracts,
-    connect, connectDemo, disconnect, switchNetwork,
+    connect, connectDemo, disconnect, switchNetwork, getWalletOptions,
     getReadOnlyContracts,
     refreshRoles: () => fetchRoles(contracts.cct, address),
     refreshBalance: async () => {

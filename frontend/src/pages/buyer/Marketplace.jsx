@@ -108,7 +108,7 @@ export default function Marketplace() {
     if (!isConnected) { connect(); return }
 
     setBuying(true)
-    const tid = toast.loading('🦊 Please confirm payment in MetaMask popup...')
+    const tid = toast.loading('🔑 Please confirm payment in BrigadeKey...')
     try {
       const amountWei = ethers.parseEther(buyAmount)
       let txHash = null
@@ -125,7 +125,7 @@ export default function Marketplace() {
         }
       }
 
-      // Attempt 2: Always trigger real MetaMask transaction via signer so popup appears!
+      // Attempt 2: Submit through the connected wallet signer.
       if (!txHash && signer) {
         try {
           const targetAddress = (buyModal.seller && ethers.isAddress(buyModal.seller))
@@ -142,7 +142,7 @@ export default function Marketplace() {
         } catch (walletErr) {
           console.warn('Wallet transaction skipped/failed:', walletErr)
           if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
-            toast.error('❌ Transaction was cancelled in MetaMask.', { id: tid })
+            toast.error('Transaction was cancelled in your wallet.', { id: tid })
             return
           }
           toast('⚠️ Wallet has insufficient ETH on this network. Completed in simulated demo mode.', { id: tid, icon: '⚠️', duration: 5000 })
@@ -491,7 +491,7 @@ export default function Marketplace() {
                 disabled={buying || (isConnected && (!quote || !buyAmount || Number(ethers.formatEther(quote.gross)) > Number(ethBalance)))}
               >
                 {buying ? <><div className="spinner"/>Processing...</>
-                  : !isConnected ? '🦊 Connect to Buy'
+                  : !isConnected ? '🔑 Connect to Buy'
                   : quote && ethBalance !== null && Number(ethers.formatEther(quote.gross)) > Number(ethBalance)
                     ? '⚠️ Insufficient ETH Balance'
                     : '🛒 Confirm Purchase'}

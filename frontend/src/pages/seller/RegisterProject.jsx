@@ -25,7 +25,7 @@ export default function RegisterProject() {
     <div className="connect-banner">
       <div className="connect-banner-icon">📝</div>
       <h2>Connect your wallet</h2>
-      <button className="btn btn-primary btn-lg" onClick={connect}>🦊 Connect Wallet</button>
+      <button className="btn btn-primary btn-lg" onClick={connect}>🔑 Connect BrigadeKey</button>
     </div>
   )
 
@@ -51,7 +51,7 @@ export default function RegisterProject() {
     if (!validate()) return
 
     setLoading(true)
-    const tid = toast.loading('🦊 Please confirm registration in MetaMask...')
+    const tid = toast.loading('🔑 Please confirm registration in BrigadeKey...')
 
     try {
       let registeredOnChain = false
@@ -91,7 +91,7 @@ export default function RegisterProject() {
         } catch (walletErr) {
           console.warn('Wallet transaction skipped/failed:', walletErr)
           if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
-            toast.error('❌ Transaction was cancelled in MetaMask.', { id: tid })
+            toast.error('Transaction was cancelled in your wallet.', { id: tid })
             return
           }
           toast('⚠️ Wallet has insufficient ETH for gas on this network. Saved to local storage for demo testing.', { id: tid, icon: '⚠️', duration: 5000 })

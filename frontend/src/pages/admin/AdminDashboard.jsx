@@ -63,7 +63,7 @@ export default function AdminDashboard() {
     <div className="connect-banner">
       <div className="connect-banner-icon">⚙️</div>
       <h2>Connect your wallet</h2>
-      <button className="btn btn-primary btn-lg" onClick={connect}>🦊 Connect Wallet</button>
+      <button className="btn btn-primary btn-lg" onClick={connect}>🔑 Connect BrigadeKey</button>
     </div>
   )
 

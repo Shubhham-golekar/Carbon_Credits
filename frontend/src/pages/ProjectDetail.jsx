@@ -88,7 +88,7 @@ export default function ProjectDetail() {
     if (!buyModal || !buyAmt || !quote) return
     if (!isConnected) { connect(); return }
     setBuying(true)
-    const tid = toast.loading('🦊 Please confirm transaction in MetaMask popup...')
+    const tid = toast.loading('🔑 Please confirm transaction in BrigadeKey...')
     try {
       const amountWei = ethers.parseEther(buyAmt)
       let txHash = null
@@ -120,7 +120,7 @@ export default function ProjectDetail() {
         } catch (walletErr) {
           console.warn('Wallet transaction skipped/failed:', walletErr)
           if (walletErr.code === 4001 || walletErr.message?.includes('rejected')) {
-            toast.error('❌ Transaction was cancelled in MetaMask.', { id: tid })
+            toast.error('Transaction was cancelled in your wallet.', { id: tid })
             return
           }
           toast('⚠️ Wallet has insufficient ETH on this network. Completed in simulated demo mode.', { id: tid, icon: '⚠️', duration: 5000 })
@@ -327,7 +327,7 @@ export default function ProjectDetail() {
               <button className="btn btn-primary" onClick={isConnected ? handleBuy : connect}
                 disabled={buying || (isConnected && (!quote || !buyAmt))}>
                 {buying ? <><div className="spinner"/>Processing...</>
-                  : isConnected ? '🛒 Confirm Purchase' : '🦊 Connect to Buy'}
+                  : isConnected ? '🛒 Confirm Purchase' : '🔑 Connect to Buy'}
               </button>
             </div>
           </div>

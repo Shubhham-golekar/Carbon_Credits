@@ -31,7 +31,7 @@ async function main() {
 
   // ── 1. Deploy CarbonCreditToken ──────────────────────────────────────────
   console.log("1. Deploying CarbonCreditToken...");
-  const CCT = await ethers.getContractFactory("CarbonCreditToken");
+  const CCT = await ethers.getContractFactory("contracts/CarbonCreditToken.sol:CarbonCreditToken");
   const cct = await CCT.deploy();
   await cct.waitForDeployment();
   const cctAddress = await cct.getAddress();
@@ -39,7 +39,7 @@ async function main() {
 
   // ── 2. Deploy ProjectRegistry ────────────────────────────────────────────
   console.log("\n2. Deploying ProjectRegistry...");
-  const Registry = await ethers.getContractFactory("ProjectRegistry");
+  const Registry = await ethers.getContractFactory("contracts/ProjectRegistry.sol:ProjectRegistry");
   const registry = await Registry.deploy();
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
@@ -47,7 +47,7 @@ async function main() {
 
   // ── 3. Deploy Marketplace ────────────────────────────────────────────────
   console.log("\n3. Deploying Marketplace...");
-  const Market = await ethers.getContractFactory("Marketplace");
+  const Market = await ethers.getContractFactory("contracts/Marketplace.sol:Marketplace");
   const market = await Market.deploy(cctAddress, PLATFORM_FEE_BPS, feeRecipientAddr);
   await market.waitForDeployment();
   const marketAddress = await market.getAddress();
